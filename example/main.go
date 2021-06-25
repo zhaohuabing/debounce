@@ -1,10 +1,3 @@
-# debouncer
-Debouncer ensures a method call will not be executed too frequently. Debouncer only call the callback function after a
- given time without new bounce event, or the time after the previous execution reaches the max duration.
-
-# Usage
-
-```go
 package main
 
 import (
@@ -30,7 +23,3 @@ func main() {
 	}
 	stop <- struct{}{}
 }
-```
-
-
-

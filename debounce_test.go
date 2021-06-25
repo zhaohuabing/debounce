@@ -25,17 +25,19 @@ func TestDebouncer_debounceAfter(t *testing.T) {
 	lock := sync.Mutex{}
 	bounceNumer := 0
 	stop := make(chan struct{})
+	isCallbackCalled :=false
 	callback := func() {
 		lock.Lock()
 		defer lock.Unlock()
-		if bounceNumer != 10 {
-			t.Errorf("test failed, expect: %v get: %v", 10, bounceNumer)
+		isCallbackCalled=true
+		if bounceNumer != 5 {
+			t.Errorf("test failed, expect: %v get: %v", 5, bounceNumer)
 		} else {
-			fmt.Printf("test succeed, expect: %v get: %v", 10, bounceNumer)
+			fmt.Printf("test succeed, expect: %v get: %v\n", 5, bounceNumer)
 		}
 	}
-	d := New(500*time.Millisecond, 2*time.Second, callback, stop)
-	for i := 0; i < 10; i++ {
+	d := New(500*time.Millisecond, 1*time.Second, callback, stop)
+	for i := 0; i < 5; i++ {
 		time.Sleep(100 * time.Millisecond)
 		d.Bounce()
 		lock.Lock()
@@ -44,12 +46,8 @@ func TestDebouncer_debounceAfter(t *testing.T) {
 	}
 	time.Sleep(600 * time.Millisecond)
 	d.Bounce()
-	for i := 0; i < 10; i++ {
-		time.Sleep(100 * time.Millisecond)
-		d.Bounce()
-		lock.Lock()
-		bounceNumer++
-		lock.Unlock()
+	if !isCallbackCalled{
+		t.Errorf("test failed, callback is not called, bounceNumber: %v",  bounceNumer)
 	}
 	stop <- struct{}{}
 }
@@ -58,32 +56,55 @@ func TestDebouncer_debounceMax(t *testing.T) {
 	lock := sync.Mutex{}
 	bounceNumer := 0
 	stop := make(chan struct{})
+	isCallbackCalled :=false
 	callback := func() {
 		lock.Lock()
 		defer lock.Unlock()
-		if bounceNumer != 20 {
-			t.Errorf("test failed, expect: %v get: %v", 20, bounceNumer)
+		isCallbackCalled=true
+		if bounceNumer != 11 {
+			t.Errorf("test failed, expect: %v get: %v", 11, bounceNumer)
 		} else {
-			fmt.Printf("test succeed, expect: %v get: %v", 20, bounceNumer)
+			fmt.Printf("test succeed, expect: %v get: %v\n", 11, bounceNumer)
 		}
 	}
-	d := New(200*time.Millisecond, 2*time.Second, callback, stop)
+	d := New(500*time.Millisecond, 1*time.Second, callback, stop)
 	for i := 0; i < 20; i++ {
 		time.Sleep(100 * time.Millisecond)
 		d.Bounce()
 		lock.Lock()
 		bounceNumer++
 		lock.Unlock()
-
 	}
-	time.Sleep(100 * time.Millisecond)
-	d.Bounce()
-	for i := 0; i < 10; i++ {
+
+	if !isCallbackCalled{
+		t.Errorf("test failed, callback is not called, bounceNumber: %v",  bounceNumer)
+	}
+	stop <- struct{}{}
+}
+
+func TestDebouncer_debounceCancel(t *testing.T) {
+	lock := sync.Mutex{}
+	bounceNumer := 0
+	stop := make(chan struct{})
+	callback := func() {
+		lock.Lock()
+		defer lock.Unlock()
+		if bounceNumer != 22 {
+			t.Errorf("test failed, expect: %v get: %v", 20, bounceNumer)
+		} else {
+			fmt.Printf("test succeed, expect: %v get: %v\n", 22, bounceNumer)
+		}
+	}
+	d := New(500*time.Millisecond, 1*time.Second, callback, stop)
+	for i := 0; i < 25; i++ {
 		time.Sleep(100 * time.Millisecond)
 		d.Bounce()
 		lock.Lock()
 		bounceNumer++
 		lock.Unlock()
+		if i==10{
+			d.Cancel()
+		}
 	}
 	stop <- struct{}{}
 }

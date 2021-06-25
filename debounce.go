@@ -16,7 +16,6 @@ package debounce
 
 import (
 	"log"
-	"sync"
 	"time"
 )
 
@@ -28,7 +27,7 @@ func init() {
 // Debouncer ensures the callback function is not executed too frequently. Debouncer only call the callback function
 // after a given time without new bounce event, or the time after the previous execution reaches the max duration.
 type Debouncer struct {
-	mutex         sync.Mutex
+	//mutex         sync.Mutex
 	debounceAfter time.Duration
 	debounceMax   time.Duration
 	callback      func()
@@ -56,18 +55,20 @@ func New(debounceAfter, debounceMax time.Duration, callback func(), stop <-chan 
 }
 
 // Bounce results a new bounce event
+// Cancel status will be cleared after this function is called
 func (d *Debouncer) Bounce() {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
+	//d.mutex.Lock()
+	//defer d.mutex.Unlock()
 
 	d.canceled = false
 	d.eventChan <- struct{}{}
 }
 
-// Cancel the next callback if there is no new bounce event after being canceled
+// Cancel the next callback
+// The cancel status will be cleared if there is a new bounce event after being canceled
 func (d *Debouncer) Cancel() {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
+	//d.mutex.Lock()
+	//defer d.mutex.Unlock()
 	d.canceled = true
 }
 
@@ -86,30 +87,29 @@ func (d *Debouncer) run() {
 				startDebounce = lastResourceUpdateTime
 			}
 			debouncedEvents++
-			timeChan = time.After(d.debounceAfter)
 		case <-timeChan:
-			eventDelay := time.Since(startDebounce)
-			quietTime := time.Since(lastResourceUpdateTime)
-			// it has been too long since the first debounced event or quiet enough since the last debounced event
-			if eventDelay >= d.debounceMax || quietTime >= d.debounceAfter {
-				if debouncedEvents > 0 {
-					fireCounter++
-					log.Printf("debounce stable[%d] %d: %v since last event, %v since last debounce",
-						fireCounter, debouncedEvents, quietTime, eventDelay)
-					d.mutex.Lock()
-					if d.canceled {
-						log.Print("this callback has been canceled")
-					} else {
-						d.callback()
-					}
-					d.mutex.Unlock()
-					debouncedEvents = 0
-				}
-			} else {
-				timeChan = time.After(d.debounceAfter - quietTime)
-			}
 		case <-d.stopChan:
 			return
+		}
+		eventDelay := time.Since(startDebounce)
+		quietTime := time.Since(lastResourceUpdateTime)
+		// it has been too long since the first debounced event or quiet enough since the last debounced event
+		if eventDelay >= d.debounceMax || quietTime >= d.debounceAfter {
+			if debouncedEvents > 0 {
+				fireCounter++
+				log.Printf("debounce stable[%d] %d: %v since last event, %v since last debounce",
+					fireCounter, debouncedEvents, quietTime, eventDelay)
+				//d.mutex.Lock()
+				if d.canceled {
+					log.Print("this callback has been canceled")
+				} else {
+					d.callback()
+				}
+				//d.mutex.Unlock()
+				debouncedEvents = 0
+			}
+		} else {
+			timeChan = time.After(d.debounceAfter - quietTime)
 		}
 	}
 }
