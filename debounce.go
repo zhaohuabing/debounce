@@ -20,8 +20,8 @@ import (
 )
 
 func init() {
-	log.SetPrefix("Debouncer: ")
-	log.SetFlags(log.Ldate | log.Lmicroseconds | log.Llongfile)
+	log.SetPrefix("debouncer ")
+	log.SetFlags(log.Ldate | log.Ltime | log.Lmsgprefix)
 }
 
 // Debouncer ensures the callback function is not executed too frequently. Debouncer only call the callback function
